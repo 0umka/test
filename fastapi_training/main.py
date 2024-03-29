@@ -1,12 +1,39 @@
 from fastapi import FastAPI, Response, Cookie, Header
-from test.fastapi_training.models.models import Product, Login, Todo
+from fastapi.responses import FileResponse
+from models.models import Product, Login, Todo, User, FeedBack
 import secrets
 from typing import Annotated
 import asyncpg
 
-app = FastAPI()
 
+app = FastAPI()
 mas = []
+fb_m = []
+
+@app.get('/')
+async def root():
+    return FileResponse('index.html')
+
+
+@app.post('/calculate')
+async def calc(num1: int, num2: int):
+    return f'{num1}+{num2}={num1+num2}'
+
+#@app.get('/users')
+#async def user(user: User = User(name='John', id=1)):
+#    return user
+
+@app.post('/user1')
+async def users(user: User):
+    if user.age >= 18:
+        user.is_adult = True
+    return user
+
+@app.post('/feedback')
+async def fb(fb: FeedBack):
+    fb_m.append(fb)
+    return {'messages': fb_m}
+
 
 @app.post("/product")
 def inf_product(product: Product):
