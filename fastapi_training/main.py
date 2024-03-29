@@ -65,12 +65,11 @@ people = {}
 
 @app.post("/login")
 def auth(response: Response, log: Login):
-    global people
     token = secrets.token_hex(16)
     people = {"username":log.username, "password":log.password}
     people["session_token"] = token
     response.set_cookie(key="session_token", value=token, httponly=True)
-    return {'message': 'cookie'}
+    return token
     
 @app.get("/user")
 def is_right(session_token = Cookie()):
