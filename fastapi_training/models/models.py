@@ -1,5 +1,17 @@
 from pydantic import BaseModel
-from typing import Union
+from typing import List, Union, Optional
+from datetime import datetime
+
+
+class User(BaseModel):
+ #   id: int
+    name: str
+    age: int
+    is_adult: bool = False
+
+class FeedBack(BaseModel):
+    name: str
+    message: str
 
 class UserCreate(BaseModel):
     name: str
