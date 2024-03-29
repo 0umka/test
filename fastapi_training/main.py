@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Response, Cookie, Header
 from fastapi.responses import FileResponse
-from models.models import Product, Login, Todo, User, FeedBack
+from models.models import Product, Login, Todo, User, FeedBack, UserCreate
 import secrets
 from typing import Annotated
 import asyncpg
@@ -34,6 +34,9 @@ async def fb(fb: FeedBack):
     fb_m.append(fb)
     return {'messages': fb_m}
 
+@app.post('/create_user')
+async def cru(cru: UserCreate):
+    return cru
 
 @app.post("/product")
 def inf_product(product: Product):

@@ -17,7 +17,7 @@ class UserCreate(BaseModel):
     name: str
     email: str
     age: int
-    is_subscribed: Union[bool, None] = None
+    is_subscribed: Optional[bool] = None
     
 class Product(BaseModel):
     product_id: int
