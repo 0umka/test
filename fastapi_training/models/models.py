@@ -7,6 +7,7 @@ class User(BaseModel):
  #   id: int
     username: str
     password: str
+    role: Optional[str] = None
  #   is_adult: bool = False
 
 class FeedBack(BaseModel):
