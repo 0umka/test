@@ -1,90 +1,67 @@
-from fastapi import FastAPI, Response, Cookie, Header
-from fastapi.responses import FileResponse
-from models.models import Product, Login, Todo, User, FeedBack, UserCreate
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from models.models import User
+import jwt
 import secrets
-from typing import Annotated
-import asyncpg
-
+from datetime import datetime, timedelta
 
 app = FastAPI()
-mas = []
-fb_m = []
-
-@app.get('/')
-async def root():
-    return FileResponse('index.html')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
-@app.post('/calculate')
-async def calc(num1: int, num2: int):
-    return f'{num1}+{num2}={num1+num2}'
+# Секретный ключ для подписи и верификации токенов JWT
+SECRET_KEY = secrets.token_hex(32)
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 1
 
-#@app.get('/users')
-#async def user(user: User = User(name='John', id=1)):
-#    return user
+# Пример информации из БД
+USERS_DATA = [
+    {
+  "username": "john_doe",
+  "password": "securepassword123"
+}
+]
+    
 
-@app.post('/user1')
-async def users(user: User):
-    if user.age >= 18:
-        user.is_adult = True
-    return user
-
-@app.post('/feedback')
-async def fb(fb: FeedBack):
-    fb_m.append(fb)
-    return {'messages': fb_m}
-
-@app.post('/create_user')
-async def cru(cru: UserCreate):
-    return cru
-
-@app.post("/product")
-def inf_product(product: Product):
-    mas.append({
-        "id":product.product_id, 
-        "name":product.name, 
-        "category":product.category, 
-        "price":product.price
-        })
-    return mas
-
-@app.get("/product/{product_id}")
-def product(product_id: int):
-    return list(filter(lambda x: product_id == x["id"], mas))
+# Функция для создания JWT токена
+def create_jwt_token(data: dict):
+    expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    data['exp'] = expire
+    return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
 
 
-@app.get("/products/search")
-def search_product(keyword: str, category: str = None, limit: int = 10):
-    result = list(filter(lambda x: keyword in x["name"], mas))
-    if category:
-        result = list(filter(lambda x: category in x["category"], result))
-    return result[:limit]
+# Функция получения User'а по токену
+def get_user_from_token(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired", headers={"WWW-Authenticate": "Bearer"})
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})
 
 
-people = {}
+# Функция для получения пользовательских данных на основе имени пользователя
+def get_user(username: str):
+    for user in USERS_DATA:
+        if user.get("username") == username:
+            return user
+    return None
 
+
+# роут для аутентификации; так делать не нужно, это для примера - более корректный пример в следующем уроке
 @app.post("/login")
-def auth(response: Response, log: Login):
-    token = secrets.token_hex(16)
-    people = {"username":log.username, "password":log.password}
-    people["session_token"] = token
-    response.set_cookie(key="session_token", value=token, httponly=True)
-    return token
+async def login(user_in: User): 
+    for user in USERS_DATA:
+        if user.get("username") == user_in.username and user.get("password") == user_in.password:
+            return {"access_token": create_jwt_token({"sub": user_in.username}), "token_type": "bearer"}
+    return {"error": "Invalid credentials"}
     
-@app.get("/user")
-def is_right(session_token = Cookie()):
-    print(people)
-    if people["session_token"] == session_token:
-        return people
+# защищенный роут для получения информации о пользователе
+@app.get("/protected_resource")
+async def about_me(current_user: str = Depends(get_user_from_token)):
+    user = get_user(current_user)
+    if user:
+        return user
     else:
-        return "stfu"
-
-@app.get("/headers")
-async def read_items(user_agent: Annotated[str | None, Header()] = None, accept_language: Annotated[str | None, Header()] = None):
-    if user_agent == None or accept_language == None:
-        return "error 400"
-    else: return {"User-agent": user_agent, "Accept-Language": accept_language}
-
-#@app.post('/todo')
-#async def things_todo(todo: Todo):
-    
+        HTTPException(status_code=401, detail="Invalid token")

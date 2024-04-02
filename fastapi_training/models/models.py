@@ -5,9 +5,9 @@ from datetime import datetime
 
 class User(BaseModel):
  #   id: int
-    name: str
-    age: int
-    is_adult: bool = False
+    username: str
+    password: str
+ #   is_adult: bool = False
 
 class FeedBack(BaseModel):
     name: str
