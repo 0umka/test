@@ -1,6 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Union, Optional
-from datetime import datetime
+from typing import Optional
 
 
 class User(BaseModel):
@@ -31,7 +30,12 @@ class Login(BaseModel):
     password: str
 
 class Todo(BaseModel):
-    id: int
     title: str
-    description: str
-    completed: bool
+    description: Optional[str] = None
+    completed: bool = False
+
+class Todo_return(BaseModel):
+    title: str
+    description: Optional[str] = None
+    completed: bool = False
+    id: Optional[int]
